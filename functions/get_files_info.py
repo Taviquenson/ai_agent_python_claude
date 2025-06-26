@@ -13,8 +13,8 @@ def get_files_info(working_directory, directory=None):
         if not is_dir_inside:
             return f'Error: Cannot list "{directory}" as it is outside the permitted working directory'
         
-        if not os.path.isdir(directory):
-            f'Error: "{directory}" is not a directory'
+        if not os.path.isdir(abs_directory):
+            return f'Error: "{directory}" is not a directory'
 
         directory_content = os.listdir(abs_directory)
     except Exception as e:
