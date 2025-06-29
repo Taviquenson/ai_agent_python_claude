@@ -1,4 +1,6 @@
 import os, subprocess
+from google.genai import types
+
 
 def run_python_file(working_directory, file_path):
     abs_working_directory = os.path.abspath(working_directory)
@@ -16,13 +18,25 @@ def run_python_file(working_directory, file_path):
         return f'Error: {e}'
     
     try:
-        result = subprocess.run(["python3", file_path], timeout=30, capture_output=True, cwd=working_directory)
-        stdout_str = result.stdout.decode('utf-8')
-        stderr_str = result.stderr.decode('utf-8')
+        result = subprocess.run(["python3", file_path], timeout=30, capture_output=True, text=True, cwd=working_directory)
         if result.returncode != 0:
             return f"Process exited with code {result.returncode}"
-        if len(stdout_str) == 0 and len(stderr_str):
+        if len(result.stdout) == 0 and len(result.stderr) == 0:
             return f"No output produced."
-        return f"STDOUT:\n{stdout_str}\nSTDERR:\n{stderr_str}"
+        return f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
     except Exception as e:
         return f"Error: executing Python file: {e}"
+    
+schema_run_python_file = types.FunctionDeclaration(
+        name="run_python_file",
+        description="Runs the Python file specified by the given file_path",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={
+                "file_path": types.Schema(
+                    type=types.Type.STRING,
+                    description="The file path that indicates where to find the file",
+                ),
+            },
+        ),
+    )
