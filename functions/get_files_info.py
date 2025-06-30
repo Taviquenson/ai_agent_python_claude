@@ -3,6 +3,8 @@ from google.genai import types
 
 
 def get_files_info(working_directory, directory=None):
+    if directory == None:
+        directory = working_directory
     abs_working_directory = os.path.abspath(working_directory)
     abs_directory = os.path.abspath(os.path.join(abs_working_directory, directory))
     # print(abs_working_directory)

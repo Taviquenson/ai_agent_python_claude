@@ -4,6 +4,7 @@ from google import genai
 from google.genai import types
 from prompts import system_prompt
 from call_function import call_function, available_functions
+from config import MAX_ITERS
 
 def main():
     load_dotenv()
@@ -26,8 +27,19 @@ def main():
         types.Content(role="user", parts=[types.Part(text=user_prompt)]),
     ]
 
-    generate_content(client, messages, verbose)
+    for i in range(20): # agent stops eventually
+        try:
+            final_response = generate_content(client, messages, verbose)
+            if final_response:
+                print("Final response:")
+                print(final_response)
+                break
+        except Exception as e:
+            print(f"Error in generate_content: {e}")
 
+    # else:
+    #     print(response.text)
+    #     break
     
 def generate_content(client, messages, verbose):
     response = client.models.generate_content(
@@ -37,6 +49,13 @@ def generate_content(client, messages, verbose):
             tools=[available_functions],
             system_instruction=system_prompt)
     )
+    if response.candidates:
+        for candidate in response.candidates:
+            messages.append(candidate.content)
+
+    if not response.function_calls:
+        return response.text
+
     if verbose:
         print("Prompt tokens:", response.usage_metadata.prompt_token_count)
         print("Response tokens:", response.usage_metadata.candidates_token_count)
@@ -48,13 +67,15 @@ def generate_content(client, messages, verbose):
         for function_call_part in function_calls:
             # print(f"Calling function: {function_call_part.name}({function_call_part.args})")
             function_call_result = call_function(function_call_part)
-    else:
-        print(response.text)
+            if function_call_result.parts[0].function_response.response == None:
+                raise Exception("Fatal exception. No response from AI Agent")
+            if verbose:
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+            messages.append(function_call_result)
 
-    if function_call_result.parts[0].function_response.response == None:
-        raise Exception("Fatal exception. No response from AI Agent")
-    if sys.argv[2] == "--verbose":
-        print(f"-> {function_call_result.parts[0].function_response.response}")
+    if not function_calls:
+        raise Exception("no function responses generated, exiting.")
+    
 
 
 if __name__ == "__main__":
